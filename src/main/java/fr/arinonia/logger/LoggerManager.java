@@ -14,6 +14,10 @@ public class LoggerManager {
     private static final BlockingQueue<Logger> queue = new ArrayBlockingQueue<Logger>(128);
 
 
+    /**
+     *
+     * @param folder where logs will be written
+     */
     public static void start(final File folder) {
         new LoggerThread(queue, folder).start();
     }
@@ -50,13 +54,22 @@ public class LoggerManager {
      * @param logsDir folder where logs are written
      */
     public static void clearOldLogs(final File logsDir) {
+        clearOldLogs(logsDir, 7);
+    }
+
+    /**
+     *
+     * @param logsDir folder where logs are written
+     * @param days after logs file will be deleted
+     */
+    public static void clearOldLogs(final File logsDir, final int days) {
         final File[] logs = logsDir.listFiles();
 
         if (logs != null) {
             Date toDeleteAfter = new Date();
             final Calendar calendar = Calendar.getInstance();
             calendar.setTime(toDeleteAfter);
-            calendar.add(Calendar.DATE, -7);
+            calendar.add(Calendar.DATE, -days);
             toDeleteAfter = calendar.getTime();
 
             for (final File log_file : logs) {
