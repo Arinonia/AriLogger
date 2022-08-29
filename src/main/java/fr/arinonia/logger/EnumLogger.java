@@ -6,5 +6,6 @@ public enum EnumLogger {
     LAUNCH,
     DESIGN,
     FILES,
-    UTILS;
+    UTILS,
+    DEFAULT;
 }

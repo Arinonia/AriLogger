@@ -11,7 +11,9 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 
 public class LoggerManager {
-    private static final BlockingQueue<Logger> queue = new ArrayBlockingQueue<Logger>(128);
+    private static final BlockingQueue<Logger> queue = new ArrayBlockingQueue<>(128);
+    private static boolean started = false;
+    private static File _folder;
 
 
     /**
@@ -19,27 +21,48 @@ public class LoggerManager {
      * @param folder where logs will be written
      */
     public static void start(final File folder) {
-        new LoggerThread(queue, folder).start();
+        if (!started) {
+            _folder = folder;
+            new LoggerThread(queue, folder).start();
+        } else {
+            System.err.println("'[LoggerManager]' StartException: the logger is already started");
+        }
     }
 
     public static void log(final Logger logger) {
-        queue.offer(logger);
+        if (!queue.offer(logger)) {
+            System.err.println("Can't add '" + logger.getMessage() + "' in log queue");
+        }
+    }
+    public static void log(EnumLogger enumLogger, Class<?> clazz, String message, LoggerColor color, LoggerType type) {
+        log(new Logger(enumLogger, clazz, message, color, type));
+    }
+    public static void log(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor color) {
+        log(new Logger(enumLogger, clazz, message, color));
     }
 
     public static void log(final EnumLogger enumLogger, final Class<?> clazz, final String message) {
-        queue.offer(new Logger(enumLogger, clazz, message));
+        log(new Logger(enumLogger, clazz, message));
     }
-    public static void log(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor color) {
-        queue.offer(new Logger(enumLogger, clazz, message, color));
-    }
+
     public static void log(final Class<?> clazz, final String message, final LoggerColor color) {
-        queue.offer(new Logger(EnumLogger.UTILS, clazz, message, color));
+        log(new Logger(EnumLogger.DEFAULT, clazz, message, color));
     }
     public static void log(final Class<?> clazz, final String message) {
-        queue.offer(new Logger(EnumLogger.UTILS, clazz, message));
+        log(new Logger(EnumLogger.DEFAULT, clazz, message));
+    }
+    public static void log(final Class<?> clazz, final String message, final LoggerColor loggerColor, final LoggerType type) {
+        log(new Logger(EnumLogger.DEFAULT, clazz, message, loggerColor, type));
     }
     public static void error(final EnumLogger enumLogger, final Class<?> clazz, final String message) {
-        queue.offer(new Logger(enumLogger, clazz, message, LoggerColor.RED));
+        log(new Logger(enumLogger, clazz, message, LoggerColor.RED));
+    }
+
+    public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor loggerColor) {
+        log(enumLogger, clazz, message, loggerColor, LoggerType.DEBUG);
+    }
+    public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message) {
+        log(enumLogger, clazz, message, null, LoggerType.DEBUG);
     }
     public static void logStackTrace(final EnumLogger enumLogger, final Class<?> clazz, Throwable t) {
         t.printStackTrace();
@@ -51,19 +74,17 @@ public class LoggerManager {
 
     /**
      * Delete old logs files (7 day after creating)
-     * @param logsDir folder where logs are written
      */
-    public static void clearOldLogs(final File logsDir) {
-        clearOldLogs(logsDir, 7);
+    public static void clearOldLogs() {
+        clearOldLogs(7);
     }
 
     /**
      *
-     * @param logsDir folder where logs are written
      * @param days after logs file will be deleted
      */
-    public static void clearOldLogs(final File logsDir, final int days) {
-        final File[] logs = logsDir.listFiles();
+    public static void clearOldLogs(final int days) {
+        final File[] logs = _folder.listFiles();
 
         if (logs != null) {
             Date toDeleteAfter = new Date();
@@ -88,4 +109,7 @@ public class LoggerManager {
             }
         }
     }
+
+
+
 }
