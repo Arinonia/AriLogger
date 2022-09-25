@@ -1,7 +1,10 @@
 package fr.arinonia.logger;
 
+import fr.arinonia.logger.discord.DiscordWebhook;
+
 import java.io.CharArrayWriter;
 import java.io.File;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,6 +26,7 @@ public class LoggerManager {
     public static void start(final File folder) {
         if (!started) {
             _folder = folder;
+            started = true;
             new LoggerThread(queue, folder).start();
         } else {
             System.err.println("'[LoggerManager]' StartException: the logger is already started");
@@ -31,7 +35,7 @@ public class LoggerManager {
 
     public static void log(final Logger logger) {
         if (!queue.offer(logger)) {
-            System.err.println("Can't add '" + logger.getMessage() + "' in log queue");
+            System.err.println("'[LoggerManager]' Can't add '" + logger.getMessage() + "' in log queue");
         }
     }
     public static void log(EnumLogger enumLogger, Class<?> clazz, String message, LoggerColor color, LoggerType type) {
@@ -54,21 +58,66 @@ public class LoggerManager {
     public static void log(final Class<?> clazz, final String message, final LoggerColor loggerColor, final LoggerType type) {
         log(new Logger(EnumLogger.DEFAULT, clazz, message, loggerColor, type));
     }
+
+    public static void log(final Logger logger, final DiscordWebhook discordWebhook) {
+        log(logger);
+        try {
+            discordWebhook.execute();
+        } catch (IOException e) {
+            System.err.println("'[LoggerManager]' Can't execute discord webhook");
+        }
+    }
+    public static void log(EnumLogger enumLogger, Class<?> clazz, String message, LoggerColor color, LoggerType type, final DiscordWebhook discordWebhook) {
+        log(new Logger(enumLogger, clazz, message, color, type), discordWebhook);
+    }
+    public static void log(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor color, final DiscordWebhook discordWebhook) {
+        log(new Logger(enumLogger, clazz, message, color), discordWebhook);
+    }
+
+    public static void log(final EnumLogger enumLogger, final Class<?> clazz, final String message, final DiscordWebhook discordWebhook) {
+        log(new Logger(enumLogger, clazz, message), discordWebhook);
+    }
+
+    public static void log(final Class<?> clazz, final String message, final LoggerColor color, final DiscordWebhook discordWebhook) {
+        log(new Logger(EnumLogger.DEFAULT, clazz, message, color), discordWebhook);
+    }
+    public static void log(final Class<?> clazz, final String message, final DiscordWebhook discordWebhook) {
+        log(new Logger(EnumLogger.DEFAULT, clazz, message), discordWebhook);
+    }
+    public static void log(final Class<?> clazz, final String message, final LoggerColor loggerColor, final LoggerType type, final DiscordWebhook discordWebhook) {
+        log(new Logger(EnumLogger.DEFAULT, clazz, message, loggerColor, type), discordWebhook);
+    }
     public static void error(final EnumLogger enumLogger, final Class<?> clazz, final String message) {
         log(new Logger(enumLogger, clazz, message, LoggerColor.RED));
     }
 
+    public static void error(final EnumLogger enumLogger, final Class<?> clazz, final String message, final DiscordWebhook discordWebhook) {
+        log(new Logger(enumLogger, clazz, message, LoggerColor.RED), discordWebhook);
+    }
     public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor loggerColor) {
         log(enumLogger, clazz, message, loggerColor, LoggerType.DEBUG);
     }
     public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message) {
         log(enumLogger, clazz, message, null, LoggerType.DEBUG);
     }
+    public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message, final LoggerColor loggerColor, final DiscordWebhook discordWebhook) {
+        log(enumLogger, clazz, message, loggerColor, LoggerType.DEBUG, discordWebhook);
+    }
+    public static void debug(final EnumLogger enumLogger, final Class<?> clazz, final String message, final DiscordWebhook discordWebhook) {
+        log(enumLogger, clazz, message, null, LoggerType.DEBUG, discordWebhook);
+    }
     public static void logStackTrace(final EnumLogger enumLogger, final Class<?> clazz, Throwable t) {
         t.printStackTrace();
         try (final CharArrayWriter writer = new CharArrayWriter()) {
             t.printStackTrace(new PrintWriter(writer));
             error(enumLogger, clazz, writer.toString());
+        }
+    }
+    public static void logStackTrace(final EnumLogger enumLogger, final Class<?> clazz, Throwable t, final DiscordWebhook discordWebhook) {
+        t.printStackTrace();
+        try (final CharArrayWriter writer = new CharArrayWriter()) {
+            t.printStackTrace(new PrintWriter(writer));
+            error(enumLogger, clazz, writer.toString(), discordWebhook);
         }
     }
 
@@ -81,7 +130,7 @@ public class LoggerManager {
 
     /**
      *
-     * @param days after logs file will be deleted
+     * @param days days after logs file will be deleted
      */
     public static void clearOldLogs(final int days) {
         final File[] logs = _folder.listFiles();
@@ -109,7 +158,5 @@ public class LoggerManager {
             }
         }
     }
-
-
 
 }
